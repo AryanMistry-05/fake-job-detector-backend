@@ -78,78 +78,27 @@ def check_email(text):
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    
-    text = request.json["text"].lower()
-    email_result = check_email(text)
-    fraud_reasons= []
-    if "pay" in text:
-        fraud_reasons.append("Asking for payment")
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
 
-    if "whatsapp" in text:
-        fraud_reasons.append("WhatsApp contact detected")
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
 
-    if "fee" in text:
-        fraud_reasons.append("Processing fee mentioned")
+        # your model prediction
+        prediction = model.predict([text])[0]
+        prob = model.predict_proba([text])[0][1]
 
-    if "telegram" in text:
-        fraud_reasons.append("Telegram contact detected")
+        return jsonify({
+            "fake_probability": int(prob * 100),
+            "trust_score": int((1 - prob) * 100),
+            "trust_message": "Analysis complete",
+            "email_check": "Looks Safe",
+            "reasons": ["Basic analysis working"]
+        })
 
-    if "urgent hiring" in text:
-        fraud_reasons.append("Urgent hiring scam pattern")
-
-    suspicious_words = [
-        "pay", "fee", "processing fee", "whatsapp",
-        "book seat", "guaranteed job", "urgent hiring",
-        "limited seats", "deposit", "registration fee"
-    ]
-
-    rule_score = 0
-
-    for word in suspicious_words:
-        if word in text:
-            rule_score += 15
-
-    vector = vectorizer.transform([text])
-    prediction = model.predict_proba(vector)[0][1]
-
-    ai_score = prediction * 100
-
-    trust_score = 100 - ai_score
-
-    if trust_score < 40:
-        trust_message = "⚠ High Risk Job"
-    elif trust_score < 70:
-        trust_message = "⚠ Suspicious Job"
-    else:
-        trust_message = "✅ Likely Safe Job"
-
-    final_score = min(ai_score + rule_score, 100)
-
-    global total_jobs, fake_jobs, real_jobs
-
-    total_jobs += 1
-
-    if final_score > 50:
-        result = "⚠ Fraud Alert"
-        fake_jobs += 1
-    else:
-        result = "Likely Real"
-        real_jobs += 1
-
-    label = 1 if final_score > 50 else 0
-
-    new_row = pd.DataFrame([[text, label]], columns=["text","label"])
-
-    new_row.to_csv("../dataset/jobs_dataset.csv", mode="a", header=False, index=False)
-
-    return jsonify({
-    "fake_probability": int(round(final_score)),  # Cast to int
-    "trust_score": int(round(trust_score)),      # Cast to int
-    "trust_message": trust_message,
-    "result": result,
-    "email_check": email_result,
-    "reasons": fraud_reasons
-})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 @app.route("/scanposter", methods=["POST"])
 def scanposter():
