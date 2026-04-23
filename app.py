@@ -17,8 +17,8 @@ CORS(app)
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Tesseract\tesseract.exe"
 
-model = pickle.load(open("../model/job_model.pkl","rb"))
-vectorizer = pickle.load(open("../model/vectorizer.pkl","rb"))
+model = pickle.load(open("job_model.pkl","rb"))
+vectorizer = pickle.load(open("vectorizer.pkl","rb"))
 
 def detect_logo(uploaded_image):
 
